@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dashboard Analitis - Kelompok 4</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary: #1d4ed8;
+            --primary-light: #eff6ff;
+            --primary-hover: #1e40af;
+            --bg-body: #f1f5f9;
+            --text-dark: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --card-bg: #ffffff;
+            --danger: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+
+        /* Reset & Pengunci Dasar Global Layout */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        html, body {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden; /* Mencegah halaman bisa digeser ke kanan */
+            background-color: var(--bg-body);
+            color: var(--text-dark);
+        }
+
+        body {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* --- SIDEBAR LEFT (RESPONSIF MODEM) --- */
+        aside {
+            width: 260px;
+            background: var(--card-bg);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0; bottom: 0; left: 0;
+            z-index: 90;
+            padding: 24px 16px;
+            transition: width 0.3s ease;
+        }
+
+        .sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 30px;
+            padding-left: 8px;
+        }
+
+        .brand-icon { color: var(--primary); font-size: 22px; font-weight: 800; }
+        .brand-text { font-size: 20px; font-weight: 700; color: var(--text-dark); white-space: nowrap; }
+        .sidebar-tag { font-size: 11px; color: var(--text-muted); margin-top: -25px; margin-bottom: 25px; padding-left: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;}
+
+        .sidebar-menu { list-style: none; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+        .menu-item a {
+            display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+            color: var(--text-muted); text-decoration: none; font-size: 14px;
+            font-weight: 500; border-radius: 10px; cursor: pointer; transition: all 0.2s;
+        }
+        .menu-item a:hover { background: var(--primary-light); color: var(--primary); }
+        .menu-item.active a { background: var(--primary); color: white; }
+        .sidebar-footer { border-top: 1px solid var(--border-color); padding-top: 16px; font-size: 11px; color: var(--text-muted); text-align: center; }
+
+        /* --- MAIN CONTENT CONTAINER --- */
+        main { 
+            margin-left: 260px; 
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+            min-width: 0; 
+            width: calc(100% - 260px);
+            max-width: 100%;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        /* --- HEADER NAVBAR (GARANSI HORIZONTAL) --- */
+        header {
+            background: var(--card-bg); 
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 24px; 
+            display: flex; 
+            flex-direction: row; 
+            justify-content: space-between; 
+            align-items: center;
+            position: sticky; 
+            top: 0; 
+            z-index: 80; 
+            gap: 12px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .topbar-tabs { 
+            display: flex; 
+            gap: 16px; 
+            align-items: center;
+            flex-shrink: 1;
+            min-width: 0;
+        }
+        .tab-link { 
+            font-size: 14px; 
+            font-weight: 600; 
+            color: var(--text-muted); 
+            text-decoration: none; 
+            padding: 6px 0; 
+            cursor: pointer; 
+            transition: all 0.2s; 
+            white-space: nowrap; 
+        }
+        .tab-link.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
+        
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .group-badge { 
+            font-size: 13px; 
+            font-weight: 600; 
+            background: var(--primary-light); 
+            color: var(--primary); 
+            padding: 6px 12px; 
+            border-radius: 8px; 
+            display: flex; 
+            align-items: center; 
+            gap: 6px; 
+            white-space: nowrap;
+        }
+        .navbar-logo-img { width: 20px; height: 20px; object-fit: contain; }
+
+        .text-desktop { display: inline; }
+        .text-mobile { display: none; }
+
+        /* --- DASHBOARD GRID SYSTEM --- */
+        .dashboard-view { 
+            display: none; 
+            padding: 24px; 
+            grid-template-columns: 280px 1fr 340px; 
+            gap: 20px; 
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .dashboard-view.active-view { display: grid; }
+        #viewManhattan { grid-template-columns: 1fr 360px; }
+
+        /* KARTU KOMPONEN (PENGAMAN WIDTH) */
+        .card { 
+            background: var(--card-bg); 
+            border: 1px solid var(--border-color); 
+            border-radius: 16px; 
+            padding: 20px; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02); 
+            margin-bottom: 20px; 
+            width: 100%; 
+            max-width: 100%;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+        .card:last-child { margin-bottom: 0; }
+        .card-title { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+
+        .left-column, .middle-column, .right-column {
+            width: 100%;
+            max-width: 100%;
+        }
+
+        /* FORM ELEMENTS */
+        .formula-reference-badge { background: #1e1b4b; color: #e0e7ff; padding: 10px 14px; border-radius: 10px; font-family: monospace; font-size: 13px; font-weight: bold; margin-bottom: 14px; display: inline-block; max-width: 100%; word-break: break-all; }
+        .input-grid-2x2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; width: 100%; }
+        
+        .input-field { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+        .input-field label { font-size: 12px; font-weight: 700; color: var(--text-muted); }
+        .input-field input { width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; outline: none; background: #f8fafc; box-sizing: border-box; }
+        
+        .btn-submit { width: 100%; background: var(--primary); color: white; border: none; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-sizing: border-box; white-space: nowrap; }
+
+        /* BOX NILAI MUTLAK */
+        .fundamental-box { 
+            background: #eedffd60; 
+            border: 1px solid #e2d4f0; 
+            border-radius: 12px; 
+            padding: 16px; 
+            text-align: center; 
+            font-size: 20px; 
+            font-weight: 600; 
+            color: #4338ca; 
+            margin-bottom: 14px; 
+            width: 100%;
+            box-sizing: border-box;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        .fundamental-desc { font-size: 13px; line-height: 1.5; color: var(--text-muted); margin-bottom: 16px; }
+        .legend-list { list-style: none; display: flex; flex-direction: column; gap: 10px; font-size: 13px; }
+        .legend-item { display: flex; align-items: center; gap: 8px; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+        .formula-display-box { background: #f1f5f9; border-radius: 10px; padding: 14px; text-align: center; font-size: 15px; font-weight: 600; margin-bottom: 16px; width: 100%; box-sizing: border-box; }
+        .steps-container { display: flex; flex-direction: column; gap: 12px; }
+        .step-math { font-family: monospace; color: #475569; font-weight: bold; font-size: 13px; word-break: break-all; }
+        .divider { height: 1px; background: var(--border-color); margin: 16px 0; }
+        .final-interval-badge { background: var(--primary); color: white; font-size: 18px; font-weight: 700; text-align: center; padding: 12px; border-radius: 10px; width: 100%; box-sizing: border-box; }
+
+        /* MANHATTAN CONTAINER */
+        .calculation-result-blue { background: #eff6ff; border-left: 4px solid var(--primary); padding: 16px; border-radius: 12px; margin-top: 16px; width: 100%; box-sizing: border-box; }
+        .res-math-box { font-family: monospace; font-size: 15px; font-weight: 700; color: #1e293b; margin-bottom: 8px; }
+        .res-big-val { font-size: 28px; font-weight: 800; color: var(--primary); }
+
+        .bottom-features-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-top: 16px; width: 100%; }
+        .sub-feature-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 14px; text-align: center; width: 100%; box-sizing: border-box; }
+        .sub-feature-card h4 { font-size: 12px; font-weight: 700; margin-bottom: 4px; }
+        .sub-feature-card p { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+
+        /* CHART STABILIZER CONTROLLER */
+        .chart-container-wrapper { position: relative; width: 100%; height: 230px; max-width: 100%; box-sizing: border-box; }
+
+        /* --- MODAL HISTORY --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+        .modal-overlay.open { opacity: 1; pointer-events: auto; }
+        .modal-container { background: var(--card-bg); border-radius: 16px; width: 92%; max-width: 500px; max-height: 80vh; display: flex; flex-direction: column; overflow: hidden; }
+        .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .modal-body { padding: 16px 20px; overflow-y: auto; flex: 1; }
+        .modal-history-list { display: flex; flex-direction: column; gap: 10px; }
+        .modal-history-item { background: #f8fafc; border: 1px solid var(--border-color); border-radius: 10px; padding: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .modal-footer { padding: 12px 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; background: #f8fafc; }
+
+        /* ==========================================================================
+           --- MEDIA QUERIES MASTER RESPONSIVE (DIPERKETAT TOTAL AGAR FLUID) ---
+           ========================================================================== */
+        @media (max-width: 1024px) {
+            .dashboard-view { grid-template-columns: 1fr 1fr; }
+            #viewAbsolute .left-column { grid-column: span 2; }
+            #viewManhattan { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 768px) {
+            /* Perkecil Sidebar Jadi Icon Only di HP */
+            aside { width: 60px; padding: 20px 4px; }
+            .brand-text, .menu-text, .sidebar-tag, .sidebar-footer { display: none !important; }
+            .sidebar-brand { justify-content: center; padding-left: 0; margin-bottom: 20px; }
+            .menu-item a { justify-content: center; padding: 12px 0; border-radius: 8px; }
+            
+            /* Atur main agar mengisi sisa lebar layar secara akurat */
+            main { 
+                margin-left: 60px; 
+                width: calc(100% - 60px) !important; 
+                max-width: calc(100% - 60px) !important;
+            }
+            
+            header { 
+                padding: 12px 14px; 
+                flex-direction: row !important; 
+                justify-content: space-between !important;
+                align-items: center !important;
+            }
+            .topbar-tabs { gap: 12px; }
+            .tab-link { font-size: 13px; }
+            
+            /* Ubah teks panjang bsi ke singkatan UBSI */
+            .text-desktop { display: none !important; }
+            .text-mobile { display: inline-block !important; }
+            .group-badge { font-size: 11px; padding: 5px 8px; }
+
+            /* Runtuhkan seluruh layout grid menjadi 1 kolom penuh vertikal */
+            .dashboard-view { 
+                grid-template-columns: 1fr !important; 
+                padding: 12px !important; 
+                gap: 16px; 
+                width: 100% !important;
+                max-width: 100% !important;
+                overflow-x: hidden;
+            }
+            #viewAbsolute .left-column { grid-column: span 1; }
+            
+            .input-grid-2x2, .bottom-features-grid { 
+                grid-template-columns: 1fr !important; 
+                gap: 12px; 
+                width: 100%;
+            }
+            
+            /* Penyelarasan box & card di HP */
+            .card { 
+                padding: 14px !important; 
+                width: 100% !important; 
+                max-width: 100% !important;
+            }
+            .fundamental-box { font-size: 18px; padding: 12px; }
+            .chart-container-wrapper { height: 200px; width: 100%; }
+            .btn-submit { font-size: 13px; padding: 10px; }
+        }
+
+        @media (max-width: 480px) {
+            header { padding: 10px; gap: 4px; }
+            .topbar-tabs { gap: 6px; }
+            .tab-link { font-size: 11px; }
+            .group-badge { font-size: 10px; padding: 4px 6px; }
+            .card { padding: 12px !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <aside>
+        <div class="sidebar-brand">
+            <div class="brand-icon"><i class="fa-solid fa-users-gear"></i></div>
+            <div class="brand-text">Kelompok 4</div>
+        </div>
+        <div class="sidebar-tag">Informatika</div>
+        <ul class="sidebar-menu">
+            <li class="menu-item active">
+                <a onclick="tutupModal()"><i class="fa-solid fa-calculator"></i> <span class="menu-text">Calculator</span></a>
+            </li>
+            <li class="menu-item">
+                <a onclick="bukaModal()"><i class="fa-solid fa-clock-rotate-left"></i> <span class="menu-text">History</span></a>
+            </li>
+        </ul>
+        <div class="sidebar-footer">v1.1.0</div>
+    </aside>
+
+    <main>
+        <header>
+            <div class="topbar-tabs">
+                <a id="tabAbs" class="tab-link active" onclick="gantiTabDashboard('absolute')">Absolute Value</a>
+                <a id="tabManhattan" class="tab-link" onclick="gantiTabDashboard('manhattan')">Manhattan Distance</a>
+            </div>
+            <div class="topbar-right">
+                <div class="group-badge">
+                    <img src="image/Logo_Universitas_Bina_Sarana_Informatika.png" alt="BSI" class="navbar-logo-img" onerror="this.src='https://via.placeholder.com/20?text=B'">
+                    <span class="text-desktop">Universitas Bina Sarana Informatika</span>
+                    <span class="text-mobile">UBSI</span>
+                </div>
+            </div>
+        </header>
+
+        <div id="viewAbsolute" class="dashboard-view active-view">
+            <div class="left-column">
+                <div class="card">
+                    <div class="card-title"><i class="fa-solid fa-book-open" style="color: #6366f1;"></i> Fundamental</div>
+                    <div class="fundamental-box">|x - a| &le; r</div>
+                    <div class="fundamental-desc">Mencari ambang rentang interval observasi (x) berdasarkan target (a) dan error toleransi (r).</div>
+                    <ul class="legend-list">
+                        <li class="legend-item"><div class="dot" style="background: #1e3a8a;"></div><span>x = Observasi</span></li>
+                        <li class="legend-item"><div class="dot" style="background: #3b82f6;"></div><span>a = Target</span></li>
+                        <li class="legend-item"><div class="dot" style="background: #ef4444;"></div><span>r = Toleransi</span></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="middle-column">
+                <div class="card">
+                    <div class="card-title">Parameter Definition</div>
+                    <div class="input-grid-2x2">
+                        <div class="input-field"><label>Target (a)</label><input type="number" id="targetA" value="30"></div>
+                        <div class="input-field"><label>Tolerance (r)</label><input type="number" id="toleransiR" value="2"></div>
+                    </div>
+                    <button class="btn-submit" onclick="prosesAbsolute()"><i class="fa-solid fa-gears"></i> Hitung & Gambar</button>
+                </div>
+                <div class="card">
+                    <div class="card-title">Visualisasi Fungsi E(x) = |x - a|</div>
+                    <div class="chart-container-wrapper"><canvas id="chartAbsolute"></canvas></div>
+                </div>
+            </div>
+
+            <div class="right-column">
+                <div class="card">
+                    <div class="card-title"><i class="fa-solid fa-square-poll-horizontal" style="color: #10b981;"></i> Hasil</div>
+                    <div class="formula-display-box" id="absPersamaan">|x - 30| &le; 2</div>
+                    <div class="steps-container">
+                        <div class="step-item"><div style="font-size:11px;color:var(--text-muted)">Step 1: Ekspansi</div><div class="step-math">-r &le; x - a &le; r</div></div>
+                        <div class="step-item"><div style="font-size:11px;color:var(--text-muted)">Step 2: Substitusi</div><div class="step-math" id="absStep2">-2 &le; x - 30 &le; 2</div></div>
+                        <div class="step-item"><div style="font-size:11px;color:var(--text-muted)">Step 3: Nilai Ruas</div><div class="step-math" id="absStep3">30 - 2 &le; x &le; 30 + 2</div></div>
+                    </div>
+                    <div class="divider"></div>
+                    <div class="final-interval-badge" id="absInterval">28 &le; x &le; 32</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="viewManhattan" class="dashboard-view">
+            <div class="middle-column">
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
+                        <div style="flex:1;">
+                            <h2 style="font-size:17px; font-weight:700; margin-bottom:6px;">Manhattan Distance</h2>
+                            <p style="font-size:13px; color:var(--text-muted); line-height:1.5;">
+                                Menghitung jarak dua titik melalui jalur tegak lurus L1 Norm.
+                            </p>
+                        </div>
+                        <div class="formula-reference-badge">d = |x₁ - x₂| + |y₁ - y₂|</div>
+                    </div>
+                </div>
+
+                <div class="input-grid-2x2">
+                    <div class="card" style="margin-bottom:0;">
+                        <div class="card-title" style="color:var(--primary)">Point 1 (P₁)</div>
+                        <div class="input-grid-2x2" style="margin-bottom:0;">
+                            <div class="input-field"><label>x₁ Value</label><input type="number" id="mX1" value="2"></div>
+                            <div class="input-field"><label>y₁ Value</label><input type="number" id="mY1" value="3"></div>
+                        </div>
+                    </div>
+                    <div class="card" style="margin-bottom:0;">
+                        <div class="card-title" style="color:var(--warning)">Point 2 (P₂)</div>
+                        <div class="input-grid-2x2" style="margin-bottom:0;">
+                            <div class="input-field"><label>x₂ Value</label><input type="number" id="mX2" value="8"></div>
+                            <div class="input-field"><label>y₂ Value</label><input type="number" id="mY2" value="7"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin: 16px 0;">
+                    <button class="btn-submit" onclick="prosesManhattan()"><i class="fa-solid fa-route"></i> Hitung & Gambar</button>
+                </div>
+
+                <div class="card">
+                    <div class="card-title"><i class="fa-solid fa-calculator"></i> Hasil Perhitungan</div>
+                    <div class="calculation-result-blue">
+                        <div class="res-math-box" id="manhattanFormula">|2 - 8| + |3 - 7| <br>= 6 + 4</div>
+                        <div class="res-big-val" id="manhattanTotal">10.00</div>
+                    </div>
+                </div>
+
+                <div class="bottom-features-grid">
+                    <div class="sub-feature-card"><h4>Stepwise Path</h4><p>Bergerak menyusuri grid.</p></div>
+                    <div class="sub-feature-card"><h4>L1 Norm</h4><p>Normalisasi Linear ruang.</p></div>
+                    <div class="sub-feature-card"><h4>Urban City</h4><p>Sistem blok perkotaan.</p></div>
+                </div>
+            </div>
+
+            <div class="right-column">
+                <div class="card" style="min-height: 280px; display:flex; flex-direction:column;">
+                    <div class="card-title"><i class="fa-solid fa-border-all"></i> Coordinate System Grid</div>
+                    <div class="chart-container-wrapper" style="flex:1;">
+                        <canvas id="chartManhattan"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="modal-overlay" id="modalRiwayat">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>Riwayat Hitungan</h2>
+                <i class="fa-solid fa-xmark" style="cursor:pointer;" onclick="tutupModal()"></i>
+            </div>
+            <div class="modal-body">
+                <div class="modal-history-list" id="modalHistoryContainer"></div>
+            </div>
+            <div class="modal-footer">
+                <button style="background:var(--danger);color:white;border:none;padding:8px 12px;border-radius:6px;font-weight:600;" onclick="clearSemuaRiwayat()">Clear All</button>
+                <button style="background:#e2e8f0;border:none;padding:8px 12px;border-radius:6px;" onclick="tutupModal()">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let chartAbsInstance = null; let chartManInstance = null; let riwayatData = [];
+
+        function gantiTabDashboard(jenis) {
+            document.getElementById('tabAbs').classList.remove('active');
+            document.getElementById('tabManhattan').classList.remove('active');
+            document.getElementById('viewAbsolute').classList.remove('active-view');
+            document.getElementById('viewManhattan').classList.remove('active-view');
+
+            if(jenis === 'absolute') {
+                document.getElementById('tabAbs').classList.add('active');
+                document.getElementById('viewAbsolute').classList.add('active-view');
+                prosesAbsolute();
+            } else {
+                document.getElementById('tabManhattan').classList.add('active');
+                document.getElementById('viewManhattan').classList.add('active-view');
+                prosesManhattan();
+            }
+        }
+
+        function prosesAbsolute() {
+            const a = parseFloat(document.getElementById('targetA').value);
+            const r = parseFloat(document.getElementById('toleransiR').value);
+            if(isNaN(a) || isNaN(r) || r < 0) return;
+
+            const bawah = a - r; const atas = a + r;
+            document.getElementById('absPersamaan').innerHTML = `|x - ${a}| &le; ${r}`;
+            document.getElementById('absStep2').innerHTML = `-${r} &le; x - ${a} &le; ${r}`;
+            document.getElementById('absStep3').innerHTML = `${a} - ${r} &le; x &le; ${a} + ${r}`;
+            document.getElementById('absInterval').innerHTML = `${bawah} &le; x &le; ${atas}`;
+
+            const labels = []; const dataPoints = [];
+            for (let x = a - 5; x <= a + 5; x++) { labels.push(x); dataPoints.push(Math.abs(x - a)); }
+
+            const ctx = document.getElementById('chartAbsolute').getContext('2d');
+            if (chartAbsInstance) chartAbsInstance.destroy();
+            chartAbsInstance = new Chart(ctx, {
+                type: 'line',
+                data: { labels: labels, datasets: [{ label: 'E(x)', data: dataPoints, borderColor: '#1d4ed8', fill: false, tension: 0.1 }] },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+            simpanLogRiwayat('Absolute Value', `|x - ${a}| &le; ${r}`, `Hasil: ${bawah} &le; x &le; ${atas}`);
+        }
+
+        function prosesManhattan() {
+            const x1 = parseFloat(document.getElementById('mX1').value) || 0;
+            const y1 = parseFloat(document.getElementById('mY1').value) || 0;
+            const x2 = parseFloat(document.getElementById('mX2').value) || 0;
+            const y2 = parseFloat(document.getElementById('mY2').value) || 0;
+            const dx = Math.abs(x1 - x2); const dy = Math.abs(y1 - y2); const total = dx + dy;
+
+            document.getElementById('manhattanFormula').innerHTML = `|${x1} - ${x2}| + |${y1} - ${y2}| <br>= ${dx} + ${dy}`;
+            document.getElementById('manhattanTotal').innerHTML = total.toFixed(2);
+
+            const ctx = document.getElementById('chartManhattan').getContext('2d');
+            if (chartManInstance) chartManInstance.destroy();
+            chartManInstance = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [
+                        { label: 'Points', data: [{x: x1, y: y1}, {x: x2, y: y2}], backgroundColor: ['#1d4ed8','#f59e0b'], pointRadius: 6 },
+                        { label: 'Path', data: [{x: x1, y: y1}, {x: x2, y: y1}, {x: x2, y: y2}], borderColor: '#1d4ed8', borderDash: [4,4], showLine: true, fill: false, pointRadius: 0 }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+            simpanLogRiwayat('Manhattan Distance', `P₁(${x1},${y1}) ke P₂(${x2},${y2})`, `Jarak: ${total}`);
+        }
+
+        function simpanLogRiwayat(tipe, rumus, hasil) {
+            if(riwayatData.length > 0 && riwayatData[0].rumus === rumus) return;
+            riwayatData.unshift({ id: Date.now(), tipe, rumus, hasil });
+        }
+
+        function renderDaftarRiwayat() {
+            const container = document.getElementById('modalHistoryContainer');
+            if (riwayatData.length === 0) { container.innerHTML = '<div style="text-align:center;font-size:12px;color:var(--text-muted);">Kosong</div>'; return; }
+            container.innerHTML = '';
+            riwayatData.forEach(item => {
+                container.innerHTML += `
+                    <div class="modal-history-item">
+                        <div>
+                            <div style="font-size:11px;color:var(--text-muted);">${item.tipe}</div>
+                            <div style="font-size:13px;font-weight:600;">${item.rumus}</div>
+                            <div style="font-size:12px;color:var(--primary);font-weight:700;">${item.hasil}</div>
+                        </div>
+                        <button style="border:none;background:none;color:var(--danger);cursor:pointer;" onclick="hapusSatuRiwayat(${item.id})"><i class="fa-solid fa-trash"></i></button>
+                    </div>`;
+            });
+        }
+
+        function hapusSatuRiwayat(id) { riwayatData = riwayatData.filter(p => p.id !== id); renderDaftarRiwayat(); }
+        function clearSemuaRiwayat() { riwayatData = []; renderDaftarRiwayat(); }
+        function bukaModal() { document.getElementById('modalRiwayat').classList.add('open'); renderDaftarRiwayat(); }
+        function tutupModal() { document.getElementById('modalRiwayat').classList.remove('open'); }
+
+        window.onload = function() { prosesAbsolute(); };
+    </script>
+</body>
+</html>
